@@ -33,9 +33,7 @@ app.get('/', function(req, res) {
 });
 
 // TODOs
-// check if website already in DB, if so return website and short url
-// if not in DB add to DB and return website and short url
-// if you submit an invalid url response == { error: 'invalid url' }
+// convert back to only accepting http:// leading
 
 const shortSchema = new Schema({
   original_url: String,
@@ -46,32 +44,33 @@ const ShortURL = new mongoose.model("short_url", shortSchema)
 
 app.post('/api/shorturl', function(req, res){
 
-  var original_url;
-  const slice_regex = /https:\/\//ig;
+  //const slice_regex = /https:\/\//ig;
   // if original_url contains https://
-  if (req.body.url.match(slice_regex)){
-    original_url = req.body.url.slice(8)
-  } else {
-    original_url = req.body.url
-  }
+  //if (req.body.url.match(slice_regex)){
+  //  original_url = req.body.url.slice(8)
+  //} else {
+  //  original_url = req.body.url
+  //}
 
 
   // check for url in database
-  ShortURL.find({ original_url: original_url }, {_id:0, __v:0}, function(err, docs) {
+  ShortURL.find({ original_url: req.body.url }, {_id:0, __v:0}, function(err, docs) {
     // if found
     if (docs.length > 0){
+      //console.log(docs[0]['short_url'])
       res.json(docs[0])
       return
     } else {
       // if not in database
-      dns.lookup(original_url, function(err, address){
+      dns.lookup(req.body.url.slice(8), function(err, address){
       var dns = address
       if (dns){
         // if address resolves, set short url
         var rand_num = Math.floor(Math.random() * 90000) + 10000
-        var short_url = new ShortURL({ original_url: original_url, short_url: rand_num })
+        var short_url = new ShortURL({ original_url: req.body.url, short_url: rand_num })
         short_url.save();
-        res.json({ original_url: original_url, short_url: rand_num })
+        console.log("short url: ", rand_num)
+        res.json({ original_url: req.body.url, short_url: rand_num })
       } else {
         // if not resolve send error
         res.json({ error: 'invalid url' })
@@ -83,11 +82,13 @@ app.post('/api/shorturl', function(req, res){
   })
 })
 
+// redirect to site when passed /api/shorturl/<short_url>
 app.get('/api/shorturl/:shorturl', function(req, res){
   //console.log(req.params.shorturl)
-  ShortURL.find({original_url: req.params.shorturl}, function(err, docs){
-    if (docs.length > 0) {
+  ShortURL.find({short_url: req.params.shorturl}, function(err, docs){
+    if (docs) {
       console.log(docs[0]['original_url'])
+      res.redirect(docs[0]['original_url'])
     } else {
       res.json({ error: 'invalid url' })
     }
@@ -97,6 +98,6 @@ app.get('/api/shorturl/:shorturl', function(req, res){
 // wipedb on restart
 ShortURL.remove({}, function(){})
 
-app.listen(3000, function() {
-  console.log(`Listening on port 3000}`);
+app.listen(port, function() {
+  console.log(`Listening on port ${port}`);
 });
