@@ -97,6 +97,6 @@ app.get('/api/shorturl/:shorturl', function(req, res){
 // wipedb on restart
 ShortURL.remove({}, function(){})
 
-app.listen(port, function() {
-  console.log(`Listening on port ${port}`);
+app.listen(3000, function() {
+  console.log(`Listening on port 3000}`);
 });
